@@ -1,7 +1,9 @@
-#include <String.h>
-
 #define analog_in A0
-#define power 2
+#define power 9
+const int vetor_saida[4] = {3,4,5,6};
+#define clock_seg1 7
+#define clock_seg2 8
+
 bool vector_out[8];
 
 void Dabble(bool A, bool B, bool C, bool D, bool vetor[4]);
@@ -12,11 +14,17 @@ String binario(int valor, int numDigitos);
 void setup() {
   Serial.begin(9600);
   pinMode(power, INPUT);
+  pinMode(3, OUTPUT);
+  pinMode(4, OUTPUT);
+  pinMode(5, OUTPUT);
+  pinMode(6, OUTPUT);
+  pinMode(clock_seg1, OUTPUT);
+  pinMode(clock_seg2, OUTPUT);
 }
 
 void loop() {
   bool state_power = digitalRead(power);
-  if (1) {  // verifica se o aparelho está ligado
+  if (state_power) {  // verifica se o aparelho está ligado
     
   
     // get do valor lógico do potenciometro e transformando-o nas 25 temperaturas pré definidas
@@ -31,19 +39,40 @@ void loop() {
 
     // chama a função complete_dabble e salva o valor em vector_out
     complete_Dabble(array_final_teste[0], array_final_teste[1], array_final_teste[2], array_final_teste[3], array_final_teste[4], vector_out);
+
+    bool vetor_out1[4];
+    bool vetor_out2[4];
+
+    for(int vetor1=0;vetor1<4; vetor1++){
+      vetor_out1[vetor1] = vector_out[vetor1];
+      vetor_out2[vetor1] = vector_out[vetor1+4];
+    }
+
+
+    digitalWrite(clock_seg1, 0);
+    digitalWrite(clock_seg2, 1);
+
+  for(int saida=0; saida<sizeof(vetor_saida); saida++)
+    digitalWrite(vetor_saida[saida], vetor_out2[saida]);
+  
+    delay(20);
+    digitalWrite(clock_seg1, 1);
+    digitalWrite(clock_seg2, 0);
+  
+    for(int saida=0; saida<sizeof(vetor_saida); saida++)
+    digitalWrite(vetor_saida[saida], vetor_out1[saida]);
     
-    Serial.print(vector_out[0]);
-    Serial.print(vector_out[1]);
-    Serial.print(vector_out[2]);
-    Serial.print(vector_out[3]);
-    Serial.print(vector_out[4]);
-    Serial.print(vector_out[5]);
-    Serial.print(vector_out[6]);
-    Serial.println(vector_out[7]); 
     
+    delay(20);
   }
   else{
     Serial.println("Power off");
+    delay(200);
+    for(int saida=0;saida<4;saida++){
+    digitalWrite(vetor_saida[saida],0);
+    digitalWrite(clock_seg1, 0);
+    digitalWrite(clock_seg2, 0);
+    }
   }
 }
 

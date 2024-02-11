@@ -1,5 +1,3 @@
-#include <String.h>
-
 #define analog_in A0
 #define power 9
 const int vetor_saida[4] = {3,4,5,6};
@@ -51,34 +49,21 @@ void loop() {
     }
 
 
-    for(int saida=0;saida<4;saida++){
-      digitalWrite(clock_seg2, 1);
-      digitalWrite(clock_seg1, 0);
-      digitalWrite(vetor_saida[saida], vetor_out2[saida]);
-      //digitalWrite(clock_seg1, 1);
-      //digitalWrite(clock_seg2, 0);
-      //digitalWrite(vetor_saida[saida], vetor_out1[saida]);
-    }
+    digitalWrite(clock_seg1, 0);
+    digitalWrite(clock_seg2, 1);
 
-
-    Serial.print(vetor_out1[0]);
+  for(int saida=0; saida<sizeof(vetor_saida); saida++)
+    digitalWrite(vetor_saida[saida], vetor_out2[saida]);
+  
+    delay(20);
+    digitalWrite(clock_seg1, 1);
+    digitalWrite(clock_seg2, 0);
+  
+    for(int saida=0; saida<sizeof(vetor_saida); saida++)
+    digitalWrite(vetor_saida[saida], vetor_out1[saida]);
     
-    Serial.print(vetor_out1[1]);
     
-    Serial.print(vetor_out1[2]);
-    
-    Serial.print(vetor_out1[3]);
-
-    Serial.print("   ");
-    
-    Serial.print(vetor_out2[0]);
-    
-    Serial.print(vetor_out2[1]);
-    
-    Serial.print(vetor_out2[2]);
-    
-    Serial.println(vetor_out2[3]); 
-    
+    delay(20);
   }
   else{
     Serial.println("Power off");
