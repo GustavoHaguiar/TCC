@@ -1,0 +1,8 @@
+Lista de referências tcc
+
+https://randomnerdtutorials.com/esp32-dual-core-arduino-ide/
+
+https://blog.eletrogate.com/webserver-assincrono-com-esp32/
+
+https://docs.nestjs.com/
+

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>Domestix</title>
+</head>
+<body>
+    <h1>
+        Domestix
+    </h1>
+
+    <br><br>
+
+    <p>
+        Ajuste a intensidade de um led:
+    </p>
+
+    <label for="intensity">Luminosidade</label>
+    <input type="range" id="intensity" name="intensity" min="0" max="100" onmousemove="sla()"/>
+
+    <button onclick="enviarValor()">Enviar Valor</button>
+
+    <p>valor de agora: </p>
+    <p id="qq"></p>
+    
+<script>
+    function sla(){
+    var intensity = document.getElementById('intensity').value;
+    document.getElementById('qq').innerText = intensity;
+}
+
+function enviarValor() {
+    var meuValor = document.getElementById('intensity').value;
+    console.log("valor " + meuValor);
+    fetch('/', {
+        method: 'POST',
+        body: `value=${meuValor}`,
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+    });
+}
+</script>
+</body>
+</html>

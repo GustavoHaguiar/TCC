@@ -1,35 +1,45 @@
 #include <WiFi.h>
-#include <WiFiClient.h>
+#include <AsyncTCP.h>
+#include <ESPAsyncWebServer.h>
 
-TaskHandle_t Task1;
+const char *ssid = "moto g(7) play 2026";
+const char *password = "gustavoppc";
 
-const int led = 2;
+#define pinLed 2
 
-void setup(){
-  Serial.begin(115200); 
+AsyncWebServer server(80);
 
-  pinMode(led, OUTPUT);
+void setup() {
+  Serial.begin(115200);
+  pinMode(pinLed, OUTPUT);
+  
+  
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Conectando ao WiFi...");
+  }
+  Serial.println("Conectado ao WiFi");
+  Serial.println(WiFi.localIP());
 
-  xTaskCreatePinnedToCore(
-    Task1code,   /* Task function. */
-    "Task1",     /* name of task. */
-    10000,       /* Stack size of task */
-    NULL,        /* parameter of the task */
-    1,           /* priority of the task */
-    &Task1,      /* Task handle to keep track of created task */
-    0            /* pin task to core 0 */  
-  );                          
+  
+  server.on("/true", HTTP_GET, [](AsyncWebServerRequest *request){
+    digitalWrite(pinLed, HIGH);
+    
+    Serial.println("Recebeu uma solicitação para ligar");
+    request->send(200, "text/plain", "HIGH");
+  });
 
-void Task1code( void * pvParameters ){
-  Serial.print("Task1 running on core ");
-  Serial.println(xPortGetCoreID());
+  server.on("/false", HTTP_GET, [](AsyncWebServerRequest *request){
+    digitalWrite(pinLed, LOW);
+    
+    Serial.println("Recebeu uma solicitação para desligar");
+    request->send(200, "text/plain", "LOW");
+  });
+  
+  server.begin();
 }
 
-void loop(){
-  Serial.print("Task2 running on core ");
-  Serial.println(xPortGetCoreID());
-  digitalWrite(led, HIGH);
-  delay(1000);
-  digitalWrite(led, LOW);
-  delay(1000);
+void loop() {
+  
 }
