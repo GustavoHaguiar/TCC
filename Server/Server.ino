@@ -2,8 +2,8 @@
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 
-const char *ssid = "moto g(7) play 2026";
-const char *password = "gustavoppc";
+const char *ssid = "JH";
+const char *password = "salmo091";
 
 #define pinLed 2
 

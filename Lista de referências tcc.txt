@@ -6,3 +6,5 @@ https://blog.eletrogate.com/webserver-assincrono-com-esp32/
 
 https://docs.nestjs.com/
 
+https://willianjusten.com.br/criando-um-switch-button-com-css
+
