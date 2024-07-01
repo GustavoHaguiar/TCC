@@ -1,27 +1,3 @@
-/*
- * Ligar energia........................................................................//certo//
- * Crar conexão ap......................................................................//certo//
- * Exibir pagina web....................................................................//certo//
- * Receber dados de rede wifi...........................................................//cert//
- * encerrar conexão ap..................................................................//certo//
- * conectar-se a rede do usuario........................................................//certo//
- * caso de errado, voltar ao "criar conexão ap".........................................//certo//
- * caso de certo: Dividir em 2 ramos principais;........................................//em produção................
- * 1 ramo: controle temperatura;
- *  ler entrada analogica
- *  fazer logica para exibir valor no display
- *  imprimir os bits do display
- * 2 ramo: controle por wifi;
- *  chuveiro está ligado? 2 opções
- *  1 opção: não está;
- *    aguardar comandos do aplicativo
- *    volta para "caso de certo"
- *  2 opção: está ligado;
- *    manter as configurações ja definidas
- *    ao desligar o cuveiro mandar relatorio ( JSON ) para o backend 
-*/
-
-
 #include <WiFiManager.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
@@ -36,7 +12,7 @@ void setup() {
   WiFiManager wifiManager;
 
   // Reseta configurações WiFi para testes
-  // wifiManager.resetSettings(); // Descomente para limpar as configurações anteriores
+  wifiManager.resetSettings(); // Descomente para limpar as configurações anteriores
 
   // Inicia um AP e habilita o portal de configuração
   if (!wifiManager.autoConnect("ESP32ConfigAP", "")) {
@@ -51,21 +27,27 @@ void setup() {
   Serial.println(localIp);
 
   // Registra o IP no backend
-  HTTPClient http;
-  http.begin("http://192.168.15.80:3001/esp32/register"); // Substitua "backend-ip" pelo IP do backend
-  http.addHeader("Content-Type", "application/json");
-  String payload = "{\"ip\":\"" + localIp + "\"}";
-  int httpResponseCode = http.POST(payload);
-  if (httpResponseCode > 0) {
-    String response = http.getString();
-    Serial.println(httpResponseCode);
-    Serial.println(response);
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    http.begin("http://192.168.1.114:3001/esp32/register"); // Substitua "backend-ip" pelo IP do backend
+    http.addHeader("Content-Type", "application/json");
+    String payload = "{\"ip\":\"" + localIp + "\"}";
+    int httpResponseCode = http.POST(payload);
+    if (httpResponseCode > 0) {
+      String response = http.getString();
+      Serial.println(httpResponseCode);
+      Serial.println(response);
+    } else {
+      Serial.println("Erro ao registrar IP");
+    }
+    http.end();  // Certifique-se de liberar os recursos
   } else {
-    Serial.println("Erro ao registrar IP");
+    Serial.println("WiFi não está conectado");
   }
-  http.end();
 
   // Configura o servidor web para lidar com requisições GET e POST
+  AsyncWebServer server(80);
+  
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(200, "text/plain", "Servidor ESP32 em funcionamento");
     Serial.println("Recebeu uma solicitação HTTP GET");
@@ -78,14 +60,21 @@ void setup() {
       String valorRecebido = request->getParam("idShower", true)->value();
       Serial.println("Id do chuveiro: " + valorRecebido);
       
-      String valorRecebido2 = request->getParam("alert", true)->value();
-      Serial.println("alerta: " + valorRecebido2);
+      if (request->hasParam("alert", true)) {
+        String valorRecebido2 = request->getParam("alert", true)->value();
+        Serial.println("alerta: " + valorRecebido2);
+      }
+      
+      if (request->hasParam("temp", true)) {
+        String valorRecebido3 = request->getParam("temp", true)->value();
+        Serial.println("temporizador: " + valorRecebido3);
+      }
+      
+      if (request->hasParam("time", true)) {
+        String valorRecebido4 = request->getParam("time", true)->value();
+        Serial.println("tempo: " + valorRecebido4);
+      }
 
-      String valorRecebido3 = request->getParam("temp", true)->value();
-      Serial.println("temporizador: " + valorRecebido3);
-
-      String valorRecebido4 = request->getParam("time", true)->value();
-      Serial.println("tempo: " + valorRecebido4);
       request->send(200, "text/plain", "Dados recebidos com sucesso");
     } else {
       Serial.println("Valor 'idShower' não presente na solicitação POST");
@@ -93,7 +82,7 @@ void setup() {
     }
 
     // Adicionando cabeçalhos CORS
-    AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", "Recebido");
+    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "Recebido");
     response->addHeader("Access-Control-Allow-Origin", "*");
     request->send(response);
   });
