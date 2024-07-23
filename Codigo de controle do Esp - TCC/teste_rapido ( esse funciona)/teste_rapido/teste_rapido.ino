@@ -62,6 +62,26 @@ void handlePost() {
   }
 }
 
+void postLog(String idShower, int timeBath, int power, String date){
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    http.begin("http://192.168.15.80:3001/postLog");
+    http.addHeader("Content-Type", "application/json");
+    String payload = "{\"idShower\":\"" + idShower + "\", \"time\":\"" + timeBath + "\", \"power\":\"" + power + "\", \"date\":\"" + date + "\"}";
+    int httpResponseCode = http.POST(payload);
+    if (httpResponseCode > 0) {
+      String response = http.getString();
+      Serial.println(httpResponseCode);
+      Serial.println(response);
+    } else {
+      Serial.println("Erro ao registrar log de uso");
+    }
+    http.end();
+  } else {
+    Serial.println("WiFi não está conectado");
+  }
+}
+
 void setup() {
   Serial.begin(115200);
   pinMode(pinRST, INPUT);
@@ -134,7 +154,12 @@ void loop() {
       Serial.println(alert2);
       Serial.println(temp2);
       Serial.println(times2);
-//      sendLogs("id","time","power");
+      postLog(
+        idShower2, 
+        int(temp2), 
+        int(power2), 
+        "date"
+        );
       
       // Reseta o temporizador
       startTime = millis();
