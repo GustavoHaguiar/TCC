@@ -13,17 +13,17 @@ void handlePost() {
   if (server.hasArg("idShower")) {
     String idShower = server.arg("idShower");
     Serial.println("Id do chuveiro: " + idShower);
-
+    
     if (server.hasArg("alert")) {
       String alert = server.arg("alert");
       Serial.println("Alerta: " + alert);
     }
-
+    
     if (server.hasArg("temp")) {
       String temp = server.arg("temp");
       Serial.println("Temporizador: " + temp);
     }
-
+    
     if (server.hasArg("time")) {
       String time = server.arg("time");
       Serial.println("Tempo: " + time);
@@ -59,7 +59,7 @@ void setup() {
   // Envia o IP para o backend
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
-    http.begin("http://172.25.160.1:3001/esp32/register"); // Substitua "backend-ip" pelo IP do backend
+    http.begin("http://192.168.15.80:3001/esp32/sendIp"); // Substitua "backend-ip" pelo IP do backend
     http.addHeader("Content-Type", "application/json");
     String payload = "{\"ip\":\"" + localIp + "\"}";
     int httpResponseCode = http.POST(payload);
