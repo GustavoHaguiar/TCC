@@ -2,9 +2,11 @@
  * Código utilizado para todos os testes com esp32, já foi compilado e não apresentou bugs
  * 
  * Para a versão final, algumas características devem ser alteradas:
- *  - Enviar potência para o app ao finalizar o banho
+ *  - Valores dos pinos mostrados no #define devem corresponder ao hardware;
+ *  - Alguns trechos sinalizados durante o código devem ser retirados;
+ *  - Função updateData() não foi testada
  *  
- *  Última revisão feita em 06-11-24 por Gustavo Aguiar
+ *  Última revisão feita em 01-10-24 por Lucas Souza
  */
 
 // Libraries
@@ -23,28 +25,31 @@ WiFiManager wifiManager;
 #define ITR 12 // Interrupção
 
 // define variables
-unsigned long startTime = 0,        // initial time
-              interval = 0,         // time for shower
-              intervalAlert = 0,    // time for alert
-              ctrStart;             // Tempo em milissegundos do início do banho
-              
-int valRST,                         // value of pin RESET
-    ctrVref,                        // Tensão mínima para considerar o chuveiro como ligado
-    dtaBathTime = 30,               // Tempo de banho, por enquanto mantido estático, será atualizado via app
-    dtaPwr = 5500,                  // Configuráveis via app
-    cnt = 0;
-    
-float ctrMidPower,                  // Potência média em que o chuveiro operou em determinado banho 
-      pwr;                          // Potência
+unsigned long startTime = 0;      // initial time
+unsigned long interval = 0;       // time for shower
+unsigned long intervalAlert = 0;  // time for alert
+int valRST, // value of pin RESET
+    ctrVref, // Tensão mínima para considerar o chuveiro como ligado
+    dtaBathTime = 30; // Tempo de banho, por enquanto mantido estático, será atualizado via app
 
-bool ctrOn,                         // Indica se o chuveiro já se encontra ligado
-        dtaActive,                  // Indica se o buzzer será utilizado, atualizado via app
-        timerSet = false,           // time defined by user
-        dtaAutoOff,                 // Indica se o final do banho será forçado, via app
-      active = true;                // variable as verify if has energy on shower (on/off)
+int dtaVolt = 127,dtaPwr = 5500; // Configuráveis via app
 
-String idShower2,                   // variable as armazened datas: id and temporizer of shower
-       urlIp = "192.168.43.144:3001";// url do backend
+float ctrMidPower; // Potência média em que o chuveiro operou em determinado banho 
+
+unsigned long ctrStart; // Tempo em milissegundos do início do banho
+
+bool ctrOn, // Indica se o chuveiro já se encontra ligado
+        dtaActive, // Indica se o buzzer será utilizado, atualizado via app
+        timerSet = false, // time defined by user
+        dtaAutoOff; // Indica se o final do banho será forçado, via app
+// bool alert2 = false;              // variable alternative to alert
+// bool alertTemp = false;           // other variable alternative to alert
+bool active = true;               // variable as verify if has energy on shower (on/off)
+String idShower2;                 // variable as armazened datas: id and temporizer of shower
+// int times2;                       // value alternative of time of shower
+// int power = 7;                    // variable of power of the bath
+float pwr;
+int cnt = 0;
 
 // function to create a main screen on route GET of the aplication
 void handleRoot() {
@@ -57,23 +62,15 @@ void handlePost() {
   if (server.hasArg("idShower")) {              // verify as the argument has the parameter "idShower"
     String idShower = server.arg("idShower"); 
     idShower2 = idShower;
-    Serial.println(idShower);
     
     if (server.hasArg("alert")) {               // verify as the argument has the parameter "alert"
       String alert = server.arg("alert");
       dtaActive = alert;
-      Serial.println(alert);
       // alertTemp = alert;
-    }
-
-    if (server.hasArg("pwrShower")) {                // verify as the argument has the parameter "power"
-      dtaPwr = server.arg("pwrShower").toInt();
-      Serial.println(dtaPwr);
     }
     
     if (server.hasArg("temp")) {                // verify as the argument has the parameter "temp"
       String temp = server.arg("temp");
-      Serial.println(temp);
       dtaAutoOff = temp;
     }
     
@@ -103,7 +100,7 @@ void sendIPAddress() {
   if (WiFi.status() == WL_CONNECTED) {                        // verify if WiFi was conected
     HTTPClient http;                                          // Start a intance of HTTPClient class
     String localIp = WiFi.localIP().toString();               // Get the shower ip and save in a string
-    String url = "http://" + urlIp + "/esp32/sendIp";           // save the url of backend app
+    String url = "http://192.168.43.144:3001/esp32/sendIp";   // save the url of backend app
     String payload = "{\"ip\":\"" + localIp + "\"}";          // save the payload of post
 
     http.begin(url);                                          // start the conection with backend
@@ -139,7 +136,7 @@ void sendIPAddress() {
 void sendLogs(String idShowerLog, int timeLog, int powerLog) {
   if (WiFi.status() == WL_CONNECTED) {                            // verify if WiFi was conected
     HTTPClient http;                                              // Start a intance of HTTPClient class
-    String url = "http://" + urlIp + "/postLog";                    // save the url to post log (save the route)
+    String url = "http://192.168.43.144:3001/postLog";            // save the url to post log (save the route)
     String payload = "{\"idShower\":\"" + idShowerLog + "\", \"time\":\"" + timeLog + "\", \"power\":\"" + powerLog + "\"}";
 
     http.begin(url);                                              // start the conection with backend
@@ -178,10 +175,9 @@ void setup() {
   pinMode(BUZ, OUTPUT);
   pinMode(V_REF, INPUT);
   pinMode(ITR,OUTPUT);
-  pinMode(pinRST, INPUT);
-
-  // deixa interrupt desligado
-  digitalWrite(ITR, HIGH);
+  pinMode(pinRST, INPUT); // pin to RESET
+  
+  digitalWrite(ITR, HIGH); // deixa interrupt desligado
 
   // Inicializa comunicação serial, para fins de debug
   Serial.begin(115200);
@@ -243,7 +239,7 @@ void buzzer(){
     // Verifica se o tempo de banho foi excedido e se o buzzer está ativo 
     if(_now - ctrStart >= (dtaBathTime - 60)* 1000 && dtaActive) {
 
-      while(millis() - _now < 700) {Serial.println("Buzzer is on!"); digitalWrite(BUZ, HIGH);}  // Liga buzzer por 0,7 segundos
+      while(millis() - _now < 700) digitalWrite(BUZ, HIGH);  // Liga buzzer por 0,7 segundos
 
       digitalWrite(BUZ, LOW); // Desliga buzzer
     
@@ -270,7 +266,7 @@ void endBath() {
   while(checkBath()); // Repete enquanto o chuveiro não for desligado
 
   updateData(); // Atualiza consumo
-  
+
   Serial.println("DONE");
 }
 
@@ -280,8 +276,11 @@ void endBath() {
  * Posteriormente, esses dados são enviados para o app
  */
 void updateData() {
+  
   pwr = (cnt / 60.0) * dtaPwr;
   ctrVref = dtaPwr*0.08;
+
+
 }
 
 /*
@@ -290,7 +289,9 @@ void updateData() {
 void loop() {
   // Verifica se há um banho ativo
   if(checkBath()) {  //////// aqui foi atualizado para testes
-    
+    Serial.print("checkbath: ");
+    Serial.println(checkBath());
+
     // inicia o servidor WiFi somente quando o banho estiver ligado
     server.handleClient();
     
@@ -306,6 +307,7 @@ void loop() {
   else {
 
     valRST = digitalRead(pinRST);                   // read the state of reset pin
+    // Serial.println(valRST);
   
     // Reinicia o WiFi do ESP32
     if (!valRST) {                                  // control the button reset
@@ -320,11 +322,13 @@ void loop() {
       Serial.println(idShower2);
       Serial.println(dtaActive);
       Serial.println(dtaAutoOff);
-      Serial.println(pwr);
-      sendLogs(idShower2, (millis() - ctrStart)/1000, pwr); // send the logs of bath
+      Serial.println(dtaBathTime);
+      sendLogs(idShower2, dtaBathTime, pwr); // send the logs of bath
         
       // Reset the temporizer
       startTime = millis();
+      // alertTemp = alert2;
+      // timerSet = false;
     }
     
     if(!dtaAutoOff && ctrOn) updateData(); // Atualiza consumo se usuário desligar o chuveiro dentro do prazo
